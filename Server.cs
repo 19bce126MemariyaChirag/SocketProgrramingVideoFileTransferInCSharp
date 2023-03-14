@@ -9,12 +9,13 @@ namespace MyExampleNamesapce
 {
     class mySocketServer
     {
+        private static int totalBytesRead=0;
+
         public static async Task Main(string[] args)
         {
-
             try
             {
-                IPHostEntry ipHostEntry = await Dns.GetHostEntryAsync("localhost");
+                IPHostEntry ipHostEntry = Dns.GetHostEntry("localhost");
                 IPAddress ipAddress = ipHostEntry.AddressList[0];
                 IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 8080);
 
@@ -27,34 +28,32 @@ namespace MyExampleNamesapce
                 listner.Bind(ipEndPoint);
                 listner.Listen(10);
                 Console.WriteLine("Server listening...");
-                Socket handler = await listner.AcceptAsync();
-                Console.WriteLine("clients connected..");
-                while (true)
-                {
-                   
-                        //receive Message
-                        var buffer = new byte[1024];
-                        var received = await handler.ReceiveAsync(buffer, SocketFlags.None);
-                        var response = Encoding.UTF8.GetString(buffer, 0, received);
-                    if (response == "end")
-                    {
-                        break;
-                    }
+                Socket handler =  listner.Accept();
 
-                    if (response.Length>0)
+                Console.WriteLine("client connected..");
+                
+                        // Create a buffer to hold the incoming file data
+                        byte[] buffer = new byte[1024 * 1024 * 2000];
+                        // Receive the file data from the server
+
+
+                        using (FileStream fileStream = new FileStream("/Users/chiragmemriya/Desktop/testing/hello11234.mp4", FileMode.Create))
                         {
-                            Console.WriteLine($"Socket Server received: {response}");
-                            Console.Write($"Enter msg : ");
-                            var ackMesage=Console.ReadLine();
-                            var echoByte = Encoding.UTF8.GetBytes(ackMesage);
-                            await handler.SendAsync(echoByte, 0);
-                            
-                        }
-                       
-                        //break;
+                            int bytesRead = handler.Receive(buffer);
                     
-                }
-                handler.Shutdown(SocketShutdown.Both);
+                            Console.WriteLine("Received file data");
+                            while (bytesRead>0)
+                            {
+                             fileStream.Write(buffer,0,bytesRead);
+                             bytesRead = handler.Receive(buffer);  
+                            }
+                            Console.WriteLine("return 1");
+                            
+                            //closing file
+                            fileStream.Close();
+                        }
+
+                   
             }
             catch (Exception e)
             {
